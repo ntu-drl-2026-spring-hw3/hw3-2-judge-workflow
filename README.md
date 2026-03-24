@@ -91,7 +91,7 @@ jobs:
     secrets: inherit
 ```
 
-`secrets: inherit` passes the necessary secrets (`LEADERBOARD_TOKEN`, `SUBMIT_SECRET`) from the judge workflow to your job. You do not need to configure any secrets in your own repo.
+`secrets: inherit` passes the necessary secrets (`LEADERBOARD_TOKEN`) from the judge workflow to your job. You do not need to configure any secrets in your own repo.
 
 ### Implementing `student_agent.py`
 

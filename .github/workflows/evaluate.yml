@@ -5,8 +5,6 @@ on:
     secrets:
       LEADERBOARD_TOKEN:
         required: true
-      SUBMIT_SECRET:
-        required: true
 
 jobs:
   evaluate:
@@ -76,7 +74,6 @@ jobs:
       - name: Submit to leaderboard
         env:
           LEADERBOARD_TOKEN: ${{ secrets.LEADERBOARD_TOKEN }}
-          SUBMIT_SECRET: ${{ secrets.SUBMIT_SECRET }}
         run: |
           python - <<'EOF'
           import json, os, urllib.request
@@ -86,9 +83,15 @@ jobs:
           payload = json.dumps({
               "event_type": "submit_score",
               "client_payload": {
-                  "secret":     os.environ["SUBMIT_SECRET"],
                   "student_id": "${{ steps.meta.outputs.student_id }}",
                   "results":    results,
+                  "audit": {
+                      "repository": "${{ github.repository }}",
+                      "run_id":     "${{ github.run_id }}",
+                      "run_url":    "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                      "sha":        "${{ github.sha }}",
+                      "actor":      "${{ github.actor }}",
+                  },
               }
           }).encode()
 
