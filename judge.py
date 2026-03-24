@@ -2,7 +2,7 @@
 Evaluation script for LevDoom levels.
 
 Usage:
-    python eval.py [--student-path PATH] [--output PATH]
+    python judge.py [--student-path PATH] [--output PATH]
 
 Loads the student's agent from student_agent.py and evaluates it across all
 configured LevDoom levels, writing results to results.json.
@@ -15,22 +15,16 @@ from pathlib import Path
 
 import numpy as np
 import levdoom
+from typing import Protocol
 
 
 # ---------------------------------------------------------------------------
 # Actor interface — students must implement this
 # ---------------------------------------------------------------------------
 
-class Actor:
-    def __init__(self, action_space):
-        self.action_space = action_space
-
-    def reset(self) -> None:
-        """Called at the start of each episode. Override to clear per-episode state."""
-        pass
-
-    def act(self, obs: np.ndarray) -> int:
-        raise NotImplementedError
+class Actor(Protocol):
+    def reset(self) -> None: ...
+    def act(self, obs: np.ndarray) -> int: ...
 
 
 # ---------------------------------------------------------------------------
