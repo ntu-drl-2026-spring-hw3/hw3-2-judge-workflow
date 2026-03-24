@@ -92,6 +92,12 @@ jobs:
               }
           }).encode()
 
+          class PostRedirectHandler(urllib.request.HTTPRedirectHandler):
+              def redirect_request(self, req, fp, code, msg, headers, newurl):
+                  return urllib.request.Request(
+                      newurl, data=req.data, headers=dict(req.headers), method=req.method
+                  )
+
           req = urllib.request.Request(
               "https://api.github.com/repos/ntu-rl-2026-spring2-hw3/hw3-2-leaderboard/dispatches",
               data=payload,
@@ -102,6 +108,7 @@ jobs:
               },
               method="POST",
           )
-          with urllib.request.urlopen(req) as r:
+          opener = urllib.request.build_opener(PostRedirectHandler)
+          with opener.open(req) as r:
               print(f"Submitted: HTTP {r.status}")
           EOF
