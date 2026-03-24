@@ -4,6 +4,33 @@ This repository contains the automated evaluation system for the LevDoom Seek an
 
 ---
 
+## Repository overview
+
+```mermaid
+flowchart LR
+    subgraph student-repo["Student Repo (per student)"]
+        SA[student_agent.py\nweights / assets]
+        SW[.github/workflows\nevaluate.yml\n— calls judge-workflow]
+    end
+
+    subgraph judge-repo["Judge Repo (this repo)"]
+        JW[evaluate.yml\nreusable workflow]
+        JP[judge.py\nevaluation logic]
+    end
+
+    subgraph leaderboard-repo["Leaderboard Repo"]
+        LW[.github/workflows\nsubmit.yml\n— listens for repository_dispatch]
+        LP[GitHub Pages\nleaderboard site]
+    end
+
+    SW -- "workflow_call" --> JW
+    JW -- "checkout + run" --> JP
+    JW -- "POST /dispatches\n(results + student_id)" --> LW
+    LW -- "updates" --> LP
+```
+
+---
+
 ## How evaluation works
 
 1. The student's repo is checked out to `./student/`.
@@ -35,7 +62,30 @@ Your repo must contain:
 |------|---------|
 | `student_agent.py` | Your agent implementation (see below) |
 | `requirements.txt` | Python dependencies your agent needs |
-| `meta.xml` | Your student ID  |
+| `meta.xml` | Your student ID |
+| `.github/workflows/main.yml` | Workflow that triggers evaluation on push |
+
+### Setting up `.github/workflows/main.yml`
+
+Create this file in your repo to automatically evaluate your agent whenever you push to `main`:
+
+```yaml
+name: Submit to Leaderboard
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  evaluate:
+    uses: OWNER/judge_workflow/.github/workflows/evaluate.yml@main
+    secrets: inherit
+```
+
+See [sample_student_workflow.yml](sample_student_workflow.yml) for a copy you can download directly.
+
+`secrets: inherit` passes the necessary secrets (`LEADERBOARD_TOKEN`, `SUBMIT_SECRET`) from the judge workflow to your job. You do not need to configure any secrets in your own repo.
 
 ### Implementing `student_agent.py`
 
