@@ -71,8 +71,6 @@ jobs:
 
       # ── Submit to leaderboard ────────────────────────────────────
       - name: Submit to leaderboard
-        env:
-          LEADERBOARD_TOKEN: ${{ secrets.LEADERBOARD_TOKEN }}
         run: |
           python - <<'EOF'
           import json, os, urllib.request
