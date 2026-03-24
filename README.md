@@ -87,7 +87,7 @@ on:
 
 jobs:
   evaluate:
-    uses: ntu-rl-2026-spring2-hw3/hw3-2-judge-workflow/.github/workflows/evaluate.yml@main
+    uses: ntu-drl-2026-spring-hw3/hw3-2-judge-workflow/.github/workflows/evaluate.yml@main
 ```
 
 ### Implementing `student_agent.py`
