@@ -1,0 +1,80 @@
+name: Evaluate Student Submission
+
+on:
+  workflow_call:
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Setup ───────────────────────────────────────────────────
+      - name: Checkout student submission
+        uses: actions/checkout@v4
+        with:
+          path: student
+
+      - name: Checkout judge
+        uses: actions/checkout@v4
+        with:
+          repository: OWNER/judge_workflow
+          path: judge
+
+      - name: Extract student ID from meta.xml
+        id: meta
+        run: |
+          student_id=$(python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET
+          tree = ET.parse("student/meta.xml")
+          print(tree.find("./info/name").text.strip())
+          PYEOF
+          )
+          echo "student_id=$student_id" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r student/requirements.txt
+          pip install numpy levdoom
+
+      # ── Evaluation ──────────────────────────────────────────────
+      - name: Run evaluation
+        run: python judge/judge.py --student-path student --output results.json
+
+      # ── Submit to leaderboard ────────────────────────────────────
+      - name: Submit to leaderboard
+        env:
+          LEADERBOARD_TOKEN: ${{ secrets.LEADERBOARD_TOKEN }}
+          SUBMIT_SECRET: ${{ secrets.SUBMIT_SECRET }}
+        run: |
+          python - <<'EOF'
+          import json, os, urllib.request
+
+          results = json.load(open("results.json"))
+
+          payload = json.dumps({
+              "event_type": "submit_score",
+              "client_payload": {
+                  "secret":     os.environ["SUBMIT_SECRET"],
+                  "student_id": "${{ steps.meta.outputs.student_id }}",
+                  "results":    results,
+              }
+          }).encode()
+
+          req = urllib.request.Request(
+              "https://api.github.com/repos/OWNER/REPO/dispatches",
+              data=payload,
+              headers={
+                  "Authorization": f"Bearer {os.environ['LEADERBOARD_TOKEN']}",
+                  "Accept": "application/vnd.github.v3+json",
+                  "Content-Type": "application/json",
+              },
+              method="POST",
+          )
+          with urllib.request.urlopen(req) as r:
+              print(f"Submitted: HTTP {r.status}")
+          EOF
