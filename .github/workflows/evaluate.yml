@@ -24,9 +24,19 @@ jobs:
         id: meta
         run: |
           student_id=$(python3 - <<'PYEOF'
-          import xml.etree.ElementTree as ET
-          tree = ET.parse("student/meta.xml")
-          print(tree.find("./info/name").text.strip())
+          import sys, xml.etree.ElementTree as ET
+          try:
+              tree = ET.parse("student/meta.xml")
+              val = tree.find("./info/name")
+              if val is None or not val.text.strip():
+                  raise ValueError
+              print(val.text.strip())
+          except FileNotFoundError:
+              print("::error::meta.xml not found. Add a meta.xml file to your repo root (see README).", file=sys.stderr)
+              sys.exit(1)
+          except Exception:
+              print("::error::meta.xml is malformed. Check that <info><name>your_id</name></info> is present.", file=sys.stderr)
+              sys.exit(1)
           PYEOF
           )
           echo "student_id=$student_id" >> "$GITHUB_OUTPUT"
@@ -34,16 +44,28 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.10"
 
       - name: Install dependencies
         run: |
+          if [ ! -f student/requirements.txt ]; then
+            echo "::error::requirements.txt not found. Add a requirements.txt to your repo root (it can be empty if you have no extra dependencies)."
+            exit 1
+          fi
           pip install -r student/requirements.txt
           pip install numpy levdoom
 
       # ── Evaluation ──────────────────────────────────────────────
       - name: Run evaluation
-        run: python judge/judge.py --student-path student --output results.json
+        run: |
+          python judge/judge.py --student-path student --output results.json || {
+            echo "::error::Evaluation failed. Common causes:"
+            echo "::error::  1. student_agent.py is missing — make sure it exists in your repo root."
+            echo "::error::  2. StudentAgent class is not defined — your file must contain 'class StudentAgent'."
+            echo "::error::  3. StudentAgent is missing act(self, obs) -> int."
+            echo "::error::  4. An exception was raised in __init__ or act() — check the logs above for the traceback."
+            exit 1
+          }
 
       # ── Submit to leaderboard ────────────────────────────────────
       - name: Submit to leaderboard

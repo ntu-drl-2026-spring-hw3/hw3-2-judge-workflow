@@ -9,7 +9,7 @@ This repository contains the automated evaluation system for the LevDoom Seek an
 flowchart LR
     subgraph student-repo["Student Repo (per student)"]
         SA[student_agent.py\nweights, etc.]
-        SW[.github/workflows\nmain.yml]
+        SW[.github/workflows/main.yml]
     end
 
     subgraph judge-repo["hw3-2-judge-workflow"]
@@ -33,8 +33,8 @@ flowchart LR
 
 1. The student's repo is checked out to `./student/`.
 2. Dependencies are installed from `student/requirements.txt`.
-3. `judge.py` loads `student/student_agent.py` and evaluates the agent across 5 levels.
-4. For each level, the agent is run on 5 fixed seeds. A **fresh agent instance is created at the start of every episode**.
+3. `judge.py` loads `student/student_agent.py` and instantiates `StudentAgent` **once**.
+4. For each level, the agent is run on 5 fixed seeds. `reset()` is called before every episode.
 5. If the agent's mean kills fall below a level's threshold, evaluation stops early.
 6. Results are submitted to the leaderboard.
 
@@ -84,18 +84,28 @@ jobs:
 
 ### Implementing `student_agent.py`
 
-Define a class named `StudentAgent` with `__init__(self, action_space)` and `act(self, obs)`.
+Define a class named `StudentAgent` with three methods:
+
+| Method | When called | Purpose |
+|--------|-------------|---------|
+| `__init__(self, action_space)` | Once at startup | Load model weights, build network, etc. |
+| `reset(self)` | Before every episode | Clear per-episode state (frame stack, hidden states, etc.) |
+| `act(self, obs) -> int` | Every timestep | Return an integer action |
+
+`reset()` is optional — if you have no per-episode state to clear, you can omit it.
 
 ```python
 class StudentAgent:
     def __init__(self, action_space):
-        # Called once at the start of every episode.
-        # action_space.n  → number of discrete actions
-        # action_space.sample() → random action
+        # Called once. Load weights here.
         self.action_space = action_space
 
+    def reset(self):
+        # Called before each episode. Clear internal state here.
+        pass
+
     def act(self, obs) -> int:
-        # Called at every timestep. Return an integer action.
+        # Called every timestep. Return an integer action.
         return self.action_space.sample()
 ```
 

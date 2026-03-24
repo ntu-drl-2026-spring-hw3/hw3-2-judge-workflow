@@ -25,6 +25,10 @@ class Actor:
     def __init__(self, action_space):
         self.action_space = action_space
 
+    def reset(self) -> None:
+        """Called at the start of each episode. Override to clear per-episode state."""
+        pass
+
     def act(self, obs: np.ndarray) -> int:
         raise NotImplementedError
 
@@ -33,48 +37,37 @@ class Actor:
 # Student agent loader
 # ---------------------------------------------------------------------------
 
-def load_student_agent(student_path: str) -> callable:
+def load_student_agent(student_path: str) -> "Actor":
     """
-    Dynamically import student_agent.py and return an actor_factory.
+    Dynamically import student_agent.py and return an instantiated agent.
 
-    The student module must expose either:
-      - make_agent(action_space) -> Actor   (preferred)
-      - StudentAgent(action_space)          (class with act(obs) -> int)
+    The student module must expose:
+      - StudentAgent(action_space)  — class with reset() and act(obs) -> int
     """
     agent_file = Path(student_path) / "student_agent.py"
     if not agent_file.exists():
         raise FileNotFoundError(f"student_agent.py not found at {agent_file}")
 
-    # Allow the student module to import its own helpers
     sys.path.insert(0, str(Path(student_path).resolve()))
 
     spec = importlib.util.spec_from_file_location("student_agent", agent_file)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    if hasattr(module, "make_agent"):
-        factory = module.make_agent
-    elif hasattr(module, "StudentAgent"):
-        factory = lambda action_space: module.StudentAgent(action_space)
-    else:
-        raise ImportError(
-            "student_agent.py must define make_agent(action_space) "
-            "or a StudentAgent class"
-        )
+    if not hasattr(module, "StudentAgent"):
+        raise ImportError("student_agent.py must define a StudentAgent class")
 
-    # Sanity-check: instantiate once with a dummy action space to catch
-    # obvious import/init errors early, before the full evaluation loop.
     try:
-        dummy_env = levdoom.make(LEVELS[0]["id"])
-        agent = factory(dummy_env.action_space)
-        dummy_env.close()
+        env = levdoom.make(LEVELS[0]["id"])
+        agent = module.StudentAgent(env.action_space)
+        env.close()
     except Exception as exc:
         raise RuntimeError(f"Failed to instantiate student agent: {exc}") from exc
 
     if not callable(getattr(agent, "act", None)):
-        raise TypeError("Student agent must implement act(obs) -> int")
+        raise TypeError("StudentAgent must implement act(obs) -> int")
 
-    return factory
+    return agent
 
 
 # ---------------------------------------------------------------------------
@@ -114,10 +107,10 @@ SEEDS = [0, 1, 2, 3, 4]
 # Core evaluation logic
 # ---------------------------------------------------------------------------
 
-def run_episode(env, actor_factory, seed: int = None) -> dict:
-    """Run a single episode with a freshly created agent and return the final info dict."""
+def run_episode(env, actor: "Actor", seed: int = None) -> dict:
+    """Run a single episode and return the final info dict."""
     obs, info = env.reset(seed=seed)
-    actor = actor_factory(env.action_space)
+    actor.reset()
     done = False
     while not done:
         action = actor.act(obs)
@@ -126,14 +119,14 @@ def run_episode(env, actor_factory, seed: int = None) -> dict:
     return info
 
 
-def evaluate_level(level_id: str, actor_factory, seeds: list[int]) -> dict:
+def evaluate_level(level_id: str, actor: "Actor", seeds: list[int]) -> dict:
     """
     Evaluate one level across multiple seeds.
 
     Args:
-        level_id:       Gym environment ID.
-        actor_factory:  Callable(action_space) -> Actor.
-        seeds:          List of integer seeds to use.
+        level_id:  Gym environment ID.
+        actor:     Instantiated Actor to evaluate.
+        seeds:     List of integer seeds to use.
 
     Returns:
         dict with per-seed info and aggregate stats.
@@ -141,7 +134,7 @@ def evaluate_level(level_id: str, actor_factory, seeds: list[int]) -> dict:
     per_seed = []
     for seed in seeds:
         env = levdoom.make(level_id)
-        info = run_episode(env, actor_factory, seed=seed)
+        info = run_episode(env, actor, seed=seed)
         env.close()
         per_seed.append(info)
         kills = info.get("kills", 0)
@@ -161,21 +154,16 @@ def evaluate_level(level_id: str, actor_factory, seeds: list[int]) -> dict:
 # Main entry point
 # ---------------------------------------------------------------------------
 
-def run_eval(actor_factory=None) -> list[dict]:
+def run_eval(actor: "Actor") -> list[dict]:
     """
     Evaluate all levels sequentially, stopping early if a threshold is not met.
 
     Args:
-        actor_factory: Callable(action_space) -> Actor.
-                       Defaults to RandomActor if not provided.
+        actor: Instantiated Actor to evaluate.
 
     Returns:
         List of result dicts (one per attempted level).
     """
-    if actor_factory is None:
-        # Default placeholder — swap in your own actor
-        actor_factory = lambda action_space: Actor()
-
     results = []
 
     for level in LEVELS:
@@ -186,7 +174,7 @@ def run_eval(actor_factory=None) -> list[dict]:
         print(f"Evaluating: {level_id}  (map={level['map']}, threshold={threshold})")
         print(f"{'='*60}")
 
-        result = evaluate_level(level_id, actor_factory, SEEDS)
+        result = evaluate_level(level_id, actor, SEEDS)
         results.append(result)
 
         mean_kills = result["mean_kills"]
@@ -217,6 +205,6 @@ if __name__ == "__main__":
     parser.add_argument("--output", default="results.json", help="Path to write results JSON")
     args = parser.parse_args()
 
-    actor_factory = load_student_agent(args.student_path)
-    results = run_eval(actor_factory)
+    actor = load_student_agent(args.student_path)
+    results = run_eval(actor)
     save_results(results, args.output)
