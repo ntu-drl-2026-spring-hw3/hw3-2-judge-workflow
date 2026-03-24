@@ -79,8 +79,9 @@ def save_results(results: list[dict], output_path: str) -> None:
     payload = {}
     for r in results:
         payload[r["level"]] = {
-            "mean_kills":     r["mean_kills"],
-            "kills_per_seed": r["kills_per_seed"],
+            "kills":  r["mean_kills"],
+            "health": r["mean_health"],
+            "ammo":   r["mean_ammo"],
         }
     with open(output_path, "w") as f:
         json.dump(payload, f, indent=2)
@@ -137,16 +138,20 @@ def evaluate_level(level_id: str, actor: "Actor", seeds: list[int]) -> dict:
         info = run_episode(env, actor, seed=seed)
         env.close()
         per_seed.append(info)
-        kills = info.get("kills", 0)
-        print(f"  seed={seed}  kills={kills}  info={info}")
+        kills  = info.get("kills",  0)
+        health = info.get("health", 0)
+        ammo   = info.get("ammo",   0)
+        print(f"  seed={seed}  kills={kills}  health={health}  ammo={ammo}")
 
-    kills_list = [ep.get("kills", 0) for ep in per_seed]
-    mean_kills = float(np.mean(kills_list))
+    kills_list  = [ep.get("kills",  0) for ep in per_seed]
+    health_list = [ep.get("health", 0) for ep in per_seed]
+    ammo_list   = [ep.get("ammo",   0) for ep in per_seed]
     return {
-        "level": level_id,
-        "per_seed": per_seed,
-        "kills_per_seed": kills_list,
-        "mean_kills": mean_kills,
+        "level":       level_id,
+        "per_seed":    per_seed,
+        "mean_kills":  float(np.mean(kills_list)),
+        "mean_health": float(np.mean(health_list)),
+        "mean_ammo":   float(np.mean(ammo_list)),
     }
 
 
@@ -191,7 +196,7 @@ def run_eval(actor: "Actor") -> list[dict]:
     print(f"\n{'='*60}")
     print("Results summary:")
     for r in results:
-        print(f"  {r['level']}: mean_kills={r['mean_kills']:.2f}  per_seed={r['kills_per_seed']}")
+        print(f"  {r['level']}: kills={r['mean_kills']:.2f}  health={r['mean_health']:.2f}  ammo={r['mean_ammo']:.2f}")
     print(f"{'='*60}\n")
 
     return results

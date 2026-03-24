@@ -8,24 +8,25 @@ This repository contains the automated evaluation system for the LevDoom Seek an
 ```mermaid
 flowchart LR
     subgraph student-repo["Student Repo (per student)"]
-        SA[student_agent.py\nweights, etc.]
-        SW[.github/workflows/main.yml]
+        SW[".github/workflows/main.yml"]
+        SA["student_agent.py\nweights, etc."]
     end
 
     subgraph judge-repo["hw3-2-judge-workflow"]
-        JW[evaluate.yml\nreusable workflow]
-        JP[judge.py\nevaluation logic]
+        JW["evaluate.yml\n(reusable workflow)"]
+        JP["judge.py"]
     end
 
     subgraph leaderboard-repo["hw3-2-leaderboard"]
-        LW[.github/workflows\nsubmit.yml\n]
-        LP[GitHub Pages\nleaderboard site]
+        LW["update_leaderboard.yml\n(repository_dispatch)"]
+        LP["GitHub Pages\nleaderboard site"]
     end
 
     SW -- "workflow_call" --> JW
     JW -- "checkout + run" --> JP
-    JW -- "POST evaluation results" --> LW
-    LW -- "updates" --> LP
+    JP -- "results.json" --> JW
+    JW -- "POST /dispatches\nevent_type: submit_score" --> LW
+    LW -- "updates leaderboard.json" --> LP
 ```
 
 
@@ -47,6 +48,16 @@ flowchart LR
 | 2 | `SeekAndSlayLevel2_1-v0` | 9 |
 | 3 | `SeekAndSlayLevel3_1-v0` | 7 |
 | 4 | `SeekAndSlayLevel4-v0` | — (final level) |
+
+### Scoring
+
+Leaderboard ranks are determined first by **number of levels reached**, then by a weighted score as tiebreaker:
+
+```
+score = kills × 0.8 + health × 0.1 + ammo × 0.1
+```
+
+Each value is the mean across the 5 seeds for that level.
 
 
 ## Student submission guide

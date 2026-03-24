@@ -17,7 +17,7 @@ jobs:
       - name: Checkout judge
         uses: actions/checkout@v4
         with:
-          repository: OWNER/judge_workflow
+          repository: ntu-rl-2026-spring2-hw3/hw3-2-judge-workflow
           path: judge
 
       - name: Extract student ID from meta.xml
@@ -88,7 +88,7 @@ jobs:
           }).encode()
 
           req = urllib.request.Request(
-              "https://api.github.com/repos/OWNER/REPO/dispatches",
+              "https://api.github.com/repos/ntu-rl-2026-spring2-hw3/hw3-2-leaderboard/dispatches",
               data=payload,
               headers={
                   "Authorization": f"Bearer {os.environ['LEADERBOARD_TOKEN']}",
