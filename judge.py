@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import levdoom
 import gymnasium
 from typing import Protocol
 
