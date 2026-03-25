@@ -41,13 +41,13 @@ flowchart LR
 
 ### Levels
 
-| Level | Environment ID | Threshold (mean kills) |
-|-------|---------------|------------------------|
-| 0 | `SeekAndSlayLevel0-v0` | 22 |
-| 1 | `SeekAndSlayLevel1_6-v0` | 15 |
-| 2 | `SeekAndSlayLevel2_1-v0` | 9 |
-| 3 | `SeekAndSlayLevel3_1-v0` | 7 |
-| 4 | `SeekAndSlayLevel4-v0` | — (final level) |
+| Level | Environment ID | Map | Threshold (mean kills) |
+|-------|---------------|-----|------------------------|
+| 0 | `SeekAndSlayLevel0-v0` | `default` | 20 |
+| 1 | `SeekAndSlayLevel1_6-v0` | `mixed_enemies` | 12 |
+| 2 | `SeekAndSlayLevel3_1-v0` | `blue_mixed_resized` | 10 |
+| 3 | `SeekAndSlayLevel2_3-v0` | `red_mixed_enemies` | 7 |
+| 4 | `SeekAndSlayLevel4-v0` | `complete` | — (final level) |
 
 ### Scoring
 
