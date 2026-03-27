@@ -53,7 +53,7 @@ def load_student_agent(student_path: str) -> "Actor":
         raise ImportError("student_agent.py must define a StudentAgent class")
 
     try:
-        env = gymnasium.make(LEVELS[0]["id"])
+        env = gymnasium.make(LEVELS[0]["id"], render=False)
         agent = module.StudentAgent(env.action_space)
         env.close()
     except Exception as exc:
@@ -129,7 +129,7 @@ def evaluate_level(level_id: str, actor: "Actor", seeds: list[int]) -> dict:
     """
     per_seed = []
     for seed in seeds:
-        env = gymnasium.make(level_id)
+        env = gymnasium.make(level_id, render=False)
         info = run_episode(env, actor, seed=seed)
         env.close()
         per_seed.append(info)
