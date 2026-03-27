@@ -103,9 +103,17 @@ SEEDS = [0, 1, 2, 3, 4]
 # Core evaluation logic
 # ---------------------------------------------------------------------------
 
+def warmup(obs, actor: "Actor") -> None:
+    """Execute reset() and act() several time to prevent hacking."""
+    for _ in range(random.randint(3, 10)):
+        actor.reset()
+        actor.act(obs)
+
 def run_episode(env, actor: "Actor", seed: int = None) -> dict:
     """Run a single episode and return the final info dict."""
     obs, info = env.reset(seed=seed)
+    # Warmup actor to prevent hacking
+    warmup(obs, actor)
     actor.reset()
     done = False
     while not done:
